@@ -1,183 +1,600 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flappy Cat</title>
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background-color: #70c5ce;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    canvas {
-      border: 2px solid #000;
-      background-color: #70c5ce;
-    }
-
-    .game-over {
-      font-size: 36px;
-      color: #ff69b4;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Cat</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 360px;
+            height: 640px;
+            background-color: #87CEEB;
+            overflow: hidden;
+            border: 4px solid #333;
+            border-radius: 8px;
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            color: white;
+        }
+        
+        #start-button {
+            padding: 12px 24px;
+            font-size: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            color: white;
+        }
+        
+        #restart-button {
+            padding: 12px 24px;
+            font-size: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 40px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        
+        .pipe {
+            position: absolute;
+            width: 80px;
+            background-color: #4CAF50;
+            border: 3px solid #2E7D32;
+        }
+        
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100px;
+            background-color: #8B4513;
+            z-index: 1;
+        }
+        
+        .grass {
+            position: absolute;
+            bottom: 100px;
+            width: 100%;
+            height: 20px;
+            background-color: #4CAF50;
+            z-index: 1;
+        }
+        
+        .cloud {
+            position: absolute;
+            width: 80px;
+            height: 40px;
+            background-color: white;
+            border-radius: 40px;
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body>
-  <div class="game-over" id="game-over">Game Over! Tap to Restart</div>
-  <canvas id="gameCanvas" width="320" height="480"></canvas>
+    <div id="game-container">
+        <div id="score">0</div>
+        <div id="start-screen">
+            <h1>Flappy Cat</h1>
+            <p>Click or press Space to make the cat jump</p>
+            <button id="start-button">Start Game</button>
+        </div>
+        <div id="game-over">
+            <h1>Game Over</h1>
+            <p>Your score: <span id="final-score">0</span></p>
+            <button id="restart-button">Play Again</button>
+        </div>
+        <div class="ground"></div>
+        <div class="grass"></div>
+    </div>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const gameOverElement = document.getElementById('game-over');
-
-    // Game variables
-    const gravity = 0.6;
-    const lift = -15;
-    let catY = canvas.height / 2;
-    let velocity = 0;
-    let isGameOver = false;
-    let score = 0;
-    let pipes = [];
-    const pipeWidth = 60;
-    const pipeGap = 150;
-    const pipeSpeed = 2;
-
-    // Cat variables
-    const catWidth = 40;
-    const catHeight = 40;
-    const catImage = new Image();
-    catImage.src = 'https://media.giphy.com/media/9J7tdxru3BdFhQKjr0/giphy.gif'; // Cat gif
-
-    // Pipe generation
-    function createPipe() {
-      const gapPosition = Math.floor(Math.random() * (canvas.height - pipeGap));
-      pipes.push({ x: canvas.width, y: gapPosition });
-    }
-
-    function movePipes() {
-      for (let i = 0; i < pipes.length; i++) {
-        pipes[i].x -= pipeSpeed;
-      }
-    }
-
-    function removeOffScreenPipes() {
-      pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
-    }
-
-    function checkPipeCollision() {
-      for (let i = 0; i < pipes.length; i++) {
-        if (
-          catY < pipes[i].y || // The cat is above the pipe
-          catY + catHeight > pipes[i].y + pipeGap // The cat is below the pipe
-        ) {
-          if (catX + catWidth > pipes[i].x && catX < pipes[i].x + pipeWidth) {
-            return true; // Collision detected
-          }
+    <script>
+        // Game variables
+        const gameContainer = document.getElementById('game-container');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over');
+        const scoreDisplay = document.getElementById('score');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        
+        let gameWidth = gameContainer.offsetWidth;
+        let gameHeight = gameContainer.offsetHeight;
+        let cat;
+        let pipes = [];
+        let clouds = [];
+        let score = 0;
+        let gameRunning = false;
+        let gameSpeed = 2;
+        let gravity = 0.5;
+        let jumpForce = -10;
+        let pipeGap = 200;
+        let lastPipeTime = 0;
+        let pipeInterval = 2000; // milliseconds
+        let animationId;
+        
+        // Cat properties
+        const catWidth = 50;
+        const catHeight = 40;
+        
+        // Create cat SVG element
+        function createCat() {
+            const catSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            catSvg.setAttribute("width", catWidth);
+            catSvg.setAttribute("height", catHeight);
+            catSvg.setAttribute("viewBox", "0 0 50 40");
+            catSvg.style.position = "absolute";
+            catSvg.style.left = "80px";
+            catSvg.style.top = "250px";
+            catSvg.style.zIndex = "5";
+            
+            // Cat body (orange)
+            const catBody = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+            catBody.setAttribute("cx", "25");
+            catBody.setAttribute("cy", "25");
+            catBody.setAttribute("rx", "20");
+            catBody.setAttribute("ry", "15");
+            catBody.setAttribute("fill", "#FFA500");
+            catBody.setAttribute("stroke", "#000");
+            catBody.setAttribute("stroke-width", "1");
+            catSvg.appendChild(catBody);
+            
+            // Cat head
+            const catHead = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            catHead.setAttribute("cx", "40");
+            catHead.setAttribute("cy", "20");
+            catHead.setAttribute("r", "10");
+            catHead.setAttribute("fill", "#FFA500");
+            catHead.setAttribute("stroke", "#000");
+            catHead.setAttribute("stroke-width", "1");
+            catSvg.appendChild(catHead);
+            
+            // Cat ears
+            const leftEar = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            leftEar.setAttribute("points", "35,12 40,3 45,12");
+            leftEar.setAttribute("fill", "#FFA500");
+            leftEar.setAttribute("stroke", "#000");
+            leftEar.setAttribute("stroke-width", "1");
+            catSvg.appendChild(leftEar);
+            
+            const rightEar = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            rightEar.setAttribute("points", "45,12 50,3 50,12");
+            rightEar.setAttribute("fill", "#FFA500");
+            rightEar.setAttribute("stroke", "#000");
+            rightEar.setAttribute("stroke-width", "1");
+            catSvg.appendChild(rightEar);
+            
+            // Cat face
+            const leftEye = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+            leftEye.setAttribute("cx", "37");
+            leftEye.setAttribute("cy", "18");
+            leftEye.setAttribute("rx", "1.5");
+            leftEye.setAttribute("ry", "2");
+            leftEye.setAttribute("fill", "#000");
+            catSvg.appendChild(leftEye);
+            
+            const rightEye = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+            rightEye.setAttribute("cx", "43");
+            rightEye.setAttribute("cy", "18");
+            rightEye.setAttribute("rx", "1.5");
+            rightEye.setAttribute("ry", "2");
+            rightEye.setAttribute("fill", "#000");
+            catSvg.appendChild(rightEye);
+            
+            // Cat nose
+            const nose = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            nose.setAttribute("points", "40,21 38,24 42,24");
+            nose.setAttribute("fill", "#FF69B4");
+            catSvg.appendChild(nose);
+            
+            // Cat mouth
+            const mouth = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            mouth.setAttribute("d", "M38,25 Q40,27 42,25");
+            mouth.setAttribute("stroke", "#000");
+            mouth.setAttribute("stroke-width", "0.5");
+            mouth.setAttribute("fill", "transparent");
+            catSvg.appendChild(mouth);
+            
+            // Cat whiskers
+            const whisker1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            whisker1.setAttribute("x1", "36");
+            whisker1.setAttribute("y1", "23");
+            whisker1.setAttribute("x2", "30");
+            whisker1.setAttribute("y2", "21");
+            whisker1.setAttribute("stroke", "#000");
+            whisker1.setAttribute("stroke-width", "0.5");
+            catSvg.appendChild(whisker1);
+            
+            const whisker2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            whisker2.setAttribute("x1", "36");
+            whisker2.setAttribute("y1", "24");
+            whisker2.setAttribute("x2", "30");
+            whisker2.setAttribute("y2", "24");
+            whisker2.setAttribute("stroke", "#000");
+            whisker2.setAttribute("stroke-width", "0.5");
+            catSvg.appendChild(whisker2);
+            
+            const whisker3 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            whisker3.setAttribute("x1", "44");
+            whisker3.setAttribute("y1", "23");
+            whisker3.setAttribute("x2", "50");
+            whisker3.setAttribute("y2", "21");
+            whisker3.setAttribute("stroke", "#000");
+            whisker3.setAttribute("stroke-width", "0.5");
+            catSvg.appendChild(whisker3);
+            
+            const whisker4 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            whisker4.setAttribute("x1", "44");
+            whisker4.setAttribute("y1", "24");
+            whisker4.setAttribute("x2", "50");
+            whisker4.setAttribute("y2", "24");
+            whisker4.setAttribute("stroke", "#000");
+            whisker4.setAttribute("stroke-width", "0.5");
+            catSvg.appendChild(whisker4);
+            
+            // Cat tail
+            const tail = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            tail.setAttribute("d", "M5,25 Q0,15 10,15");
+            tail.setAttribute("stroke", "#FFA500");
+            tail.setAttribute("stroke-width", "4");
+            tail.setAttribute("fill", "transparent");
+            catSvg.appendChild(tail);
+            
+            gameContainer.appendChild(catSvg);
+            
+            return {
+                element: catSvg,
+                x: 80,
+                y: 250,
+                width: catWidth,
+                height: catHeight,
+                velocity: 0,
+                jump: function() {
+                    this.velocity = jumpForce;
+                },
+                update: function() {
+                    this.velocity += gravity;
+                    this.y += this.velocity;
+                    
+                    // Keep cat within game bounds
+                    if (this.y < 0) {
+                        this.y = 0;
+                        this.velocity = 0;
+                    }
+                    
+                    if (this.y > gameHeight - 120 - this.height) {
+                        this.y = gameHeight - 120 - this.height;
+                        gameOver();
+                    }
+                    
+                    // Update cat position
+                    this.element.style.top = this.y + "px";
+                    
+                    // Rotate cat based on velocity
+                    const rotation = Math.min(Math.max(this.velocity * 2, -30), 90);
+                    this.element.style.transform = `rotate(${rotation}deg)`;
+                }
+            };
         }
-      }
-      return false;
-    }
-
-    // Game reset
-    function resetGame() {
-      pipes = [];
-      catY = canvas.height / 2;
-      velocity = 0;
-      score = 0;
-      isGameOver = false;
-      gameOverElement.style.display = 'none';
-    }
-
-    // Game loop
-    function gameLoop() {
-      if (isGameOver) return;
-
-      // Update game variables
-      velocity += gravity;
-      catY += velocity;
-
-      // Collision detection with top and bottom
-      if (catY <= 0 || catY + catHeight >= canvas.height) {
-        gameOver();
-      }
-
-      // Pipe logic
-      movePipes();
-      removeOffScreenPipes();
-      if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 150) {
-        createPipe();
-      }
-
-      if (checkPipeCollision()) {
-        gameOver();
-      }
-
-      // Drawing
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw cat
-      ctx.drawImage(catImage, 40, catY, catWidth, catHeight);
-
-      // Draw pipes
-      pipes.forEach(pipe => {
-        ctx.fillStyle = '#009900';
-        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.y); // Top pipe
-        ctx.fillRect(pipe.x, pipe.y + pipeGap, pipeWidth, canvas.height); // Bottom pipe
-      });
-
-      // Draw score
-      ctx.font = '30px Arial';
-      ctx.fillStyle = 'white';
-      ctx.fillText('Score: ' + score, 10, 30);
-
-      // Increase score
-      pipes.forEach(pipe => {
-        if (pipe.x + pipeWidth < 40 && !pipe.scored) {
-          score++;
-          pipe.scored = true;
+        
+        // Create pipe elements
+        function createPipe() {
+            const pipeWidth = 80;
+            const minHeight = 50;
+            const maxHeight = gameHeight - pipeGap - minHeight - 120; // 120 for ground height
+            const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+            const bottomHeight = gameHeight - topHeight - pipeGap - 120;
+            
+            // Top pipe
+            const topPipe = document.createElement('div');
+            topPipe.className = 'pipe';
+            topPipe.style.top = "0";
+            topPipe.style.left = gameWidth + "px";
+            topPipe.style.height = topHeight + "px";
+            
+            // Bottom pipe
+            const bottomPipe = document.createElement('div');
+            bottomPipe.className = 'pipe';
+            bottomPipe.style.bottom = "120px"; // 120px above ground
+            bottomPipe.style.left = gameWidth + "px";
+            bottomPipe.style.height = bottomHeight + "px";
+            
+            // Add pipes to game container
+            gameContainer.appendChild(topPipe);
+            gameContainer.appendChild(bottomPipe);
+            
+            // Add to pipe array
+            pipes.push({
+                top: {
+                    element: topPipe,
+                    x: gameWidth,
+                    y: 0,
+                    width: pipeWidth,
+                    height: topHeight
+                },
+                bottom: {
+                    element: bottomPipe,
+                    x: gameWidth,
+                    y: topHeight + pipeGap,
+                    width: pipeWidth,
+                    height: bottomHeight
+                },
+                passed: false
+            });
         }
-      });
-
-      requestAnimationFrame(gameLoop);
-    }
-
-    // Game over function
-    function gameOver() {
-      isGameOver = true;
-      gameOverElement.style.display = 'block';
-    }
-
-    // Flap function (when user taps or clicks)
-    function flap() {
-      if (isGameOver) {
-        resetGame();
-      }
-      if (catY > 0) {
-        velocity = lift;
-      }
-    }
-
-    // Event listeners for mobile and desktop
-    canvas.addEventListener('click', flap);
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      flap();
-    });
-
-    // Start the game loop
-    gameLoop();
-
-  </script>
+        
+        // Create cloud elements
+        function createCloud() {
+            const cloud = document.createElement('div');
+            cloud.className = 'cloud';
+            
+            const cloudY = Math.random() * (gameHeight - 320);
+            const cloudSpeed = Math.random() * 0.5 + 0.5;
+            
+            cloud.style.top = cloudY + "px";
+            cloud.style.left = gameWidth + "px";
+            
+            // Add some random sizes for clouds
+            const scale = Math.random() * 1 + 0.5;
+            cloud.style.transform = `scale(${scale})`;
+            cloud.style.opacity = Math.random() * 0.3 + 0.5;
+            
+            // Add cloud to game container
+            gameContainer.appendChild(cloud);
+            
+            // Add to cloud array
+            clouds.push({
+                element: cloud,
+                x: gameWidth,
+                y: cloudY,
+                speed: cloudSpeed
+            });
+        }
+        
+        // Check for collisions
+        function checkCollision(a, b) {
+            return (
+                a.x < b.x + b.width &&
+                a.x + a.width > b.x &&
+                a.y < b.y + b.height &&
+                a.y + a.height > b.y
+            );
+        }
+        
+        function updateGame() {
+            if (!gameRunning) return;
+            
+            // Update cat
+            cat.update();
+            
+            // Create new pipes
+            const currentTime = Date.now();
+            if (currentTime - lastPipeTime > pipeInterval) {
+                createPipe();
+                lastPipeTime = currentTime;
+            }
+            
+            // Create clouds occasionally
+            if (Math.random() < 0.005) {
+                createCloud();
+            }
+            
+            // Update pipes
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                const pipe = pipes[i];
+                
+                // Move pipe
+                pipe.top.x -= gameSpeed;
+                pipe.bottom.x -= gameSpeed;
+                pipe.top.element.style.left = pipe.top.x + "px";
+                pipe.bottom.element.style.left = pipe.bottom.x + "px";
+                
+                // Check for collisions
+                if (
+                    checkCollision(cat, pipe.top) ||
+                    checkCollision(cat, pipe.bottom)
+                ) {
+                    gameOver();
+                    return;
+                }
+                
+                // Check if cat passed the pipe
+                if (!pipe.passed && pipe.top.x + pipe.top.width < cat.x) {
+                    pipe.passed = true;
+                    score++;
+                    scoreDisplay.textContent = score;
+                    
+                    // Increase game speed gradually
+                    if (score % 5 === 0 && pipeInterval > 1000) {
+                        pipeInterval -= 100;
+                        gameSpeed += 0.2;
+                    }
+                }
+                
+                // Remove pipes that are off screen
+                if (pipe.top.x + pipe.top.width < 0) {
+                    gameContainer.removeChild(pipe.top.element);
+                    gameContainer.removeChild(pipe.bottom.element);
+                    pipes.splice(i, 1);
+                }
+            }
+            
+            // Update clouds
+            for (let i = clouds.length - 1; i >= 0; i--) {
+                const cloud = clouds[i];
+                
+                // Move cloud
+                cloud.x -= cloud.speed;
+                cloud.element.style.left = cloud.x + "px";
+                
+                // Remove clouds that are off screen
+                if (cloud.x + 100 < 0) {
+                    gameContainer.removeChild(cloud.element);
+                    clouds.splice(i, 1);
+                }
+            }
+            
+            // Continue game loop
+            animationId = requestAnimationFrame(updateGame);
+        }
+        
+        function startGame() {
+            // Reset game state
+            score = 0;
+            gameRunning = true;
+            lastPipeTime = Date.now();
+            gameSpeed = 2;
+            pipeInterval = 2000;
+            
+            // Clear any existing elements
+            if (cat && cat.element) {
+                gameContainer.removeChild(cat.element);
+            }
+            
+            pipes.forEach(pipe => {
+                gameContainer.removeChild(pipe.top.element);
+                gameContainer.removeChild(pipe.bottom.element);
+            });
+            
+            clouds.forEach(cloud => {
+                gameContainer.removeChild(cloud.element);
+            });
+            
+            pipes = [];
+            clouds = [];
+            
+            // Create cat
+            cat = createCat();
+            
+            // Update score display
+            scoreDisplay.textContent = score;
+            
+            // Hide start screen
+            startScreen.style.display = "none";
+            
+            // Hide game over screen
+            gameOverScreen.style.display = "none";
+            
+            // Start game loop
+            animationId = requestAnimationFrame(updateGame);
+            
+            // Create initial clouds
+            for (let i = 0; i < 3; i++) {
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud';
+                
+                const cloudY = Math.random() * (gameHeight - 320);
+                const cloudX = Math.random() * gameWidth;
+                const cloudSpeed = Math.random() * 0.5 + 0.5;
+                
+                cloud.style.top = cloudY + "px";
+                cloud.style.left = cloudX + "px";
+                
+                // Add some random sizes for clouds
+                const scale = Math.random() * 1 + 0.5;
+                cloud.style.transform = `scale(${scale})`;
+                cloud.style.opacity = Math.random() * 0.3 + 0.5;
+                
+                // Add cloud to game container
+                gameContainer.appendChild(cloud);
+                
+                // Add to cloud array
+                clouds.push({
+                    element: cloud,
+                    x: cloudX,
+                    y: cloudY,
+                    speed: cloudSpeed
+                });
+            }
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            
+            // Show game over screen
+            gameOverScreen.style.display = "flex";
+            finalScoreDisplay.textContent = score;
+        }
+        
+        // Handle controls
+        function handleJump(e) {
+            if (gameRunning) {
+                cat.jump();
+            }
+        }
+        
+        // Event listeners
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+        document.addEventListener('click', handleJump);
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                handleJump(e);
+            }
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            gameWidth = gameContainer.offsetWidth;
+            gameHeight = gameContainer.offsetHeight;
+        });
+    </script>
 </body>
 </html>
