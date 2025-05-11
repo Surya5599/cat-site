@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hi Christine!</title>
+  <style>
+    body {
+      background: #fdf6e3;
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+    img {
+      cursor: pointer;
+      max-width: 90%;
+      height: auto;
+      border: 5px solid #ff69b4;
+      border-radius: 10px;
+    }
+    h1 {
+      color: #ff69b4;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hi Christine!</h1>
+  <img id="cat-gif" src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" alt="cat gif">
+  
+  <script>
+    const gifs = [
+      "https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif",
+      "https://media.giphy.com/media/mlvseq9yvZhba/giphy.gif",
+      "https://media.giphy.com/media/13borq7Zo2kulO/giphy.gif",
+      "https://media.giphy.com/media/v6aOjy0Qo1fIA/giphy.gif"
+    ];
+    
+    const img = document.getElementById('cat-gif');
+    
+    img.addEventListener('click', () => {
+      const newGif = gifs[Math.floor(Math.random() * gifs.length)];
+      img.src = newGif;
+    });
+  </script>
+</body>
+</html>
