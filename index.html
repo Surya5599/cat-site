@@ -43,7 +43,7 @@
     #kimchi {
       width: 100px;
       height: 100px;
-      background-image: url('https://i.pinimg.com/736x/f4/95/a6/f495a65302a0d65f809c14c63189dc92.jpg'); /* kimchi photo */
+      background-image: url('https://media.istockphoto.com/id/1458692874/vector/kimchi-traditional-korean-dish-in-flat-design.jpg'); /* kimchi photo */
       background-size: cover;
       position: absolute;
       bottom: 0;
@@ -79,7 +79,7 @@
 
   <div id="game-container">
     <div id="cat-mouth" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-    <div id="kimchi" draggable="true" ondragstart="drag(event)"></div>
+    <div id="kimchi" draggable="true" ondragstart="drag(event)" ontouchstart="touchStart(event)" ontouchmove="touchMove(event)" ontouchend="touchEnd(event)"></div>
     <div id="message"></div>
     <div id="feed-cat-text">Feed the Cat Please</div>
   </div>
@@ -130,6 +130,52 @@
       const kimchi = document.getElementById(data);
       kimchi.style.display = "none"; // Hide after "eaten"
       document.getElementById("message").innerText = "😺 Yum! Kimchi!";
+    }
+
+    // Mobile drag support
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isTouchDragging = false;
+
+    function touchStart(ev) {
+      const touch = ev.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      isTouchDragging = true;
+    }
+
+    function touchMove(ev) {
+      if (!isTouchDragging) return;
+
+      const touch = ev.touches[0];
+      const kimchi = document.getElementById('kimchi');
+
+      kimchi.style.position = 'absolute';
+      kimchi.style.left = `${touch.clientX - 50}px`; // 50px offset to center the image on touch
+      kimchi.style.top = `${touch.clientY - 50}px`; // 50px offset to center the image on touch
+    }
+
+    function touchEnd(ev) {
+      if (!isTouchDragging) return;
+
+      isTouchDragging = false;
+
+      const kimchi = document.getElementById('kimchi');
+      const catMouth = document.getElementById('cat-mouth');
+      const catMouthRect = catMouth.getBoundingClientRect();
+      const kimchiRect = kimchi.getBoundingClientRect();
+
+      // Check if the kimchi is dropped inside the cat's mouth
+      if (kimchiRect.top < catMouthRect.bottom && kimchiRect.bottom > catMouthRect.top &&
+          kimchiRect.left < catMouthRect.right && kimchiRect.right > catMouthRect.left) {
+        kimchi.style.display = "none"; // Hide after "eaten"
+        document.getElementById("message").innerText = "😺 Yum! Kimchi!";
+      }
+
+      // Reset position if not dropped inside the mouth
+      kimchi.style.position = 'absolute';
+      kimchi.style.left = '50%';
+      kimchi.style.transform = 'translateX(-50%)';
     }
   </script>
 </body>
