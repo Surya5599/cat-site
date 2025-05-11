@@ -58,16 +58,30 @@
       margin-top: 20px;
       height: 30px;
     }
+
+    #feed-cat-text {
+      font-size: 20px;
+      color: #ff69b4;
+      font-weight: bold;
+      text-shadow: 0 0 10px #ff69b4, 0 0 20px #ff69b4, 0 0 30px #ff69b4;
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
   </style>
 </head>
 <body>
   <h1>Hi Christine!</h1>
-  <img id="cat-gif" src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" alt="cat gif">
+
+  <!-- Button to toggle GIF visibility -->
+  <button id="toggle-gif-btn">Show Cat GIF</button>
 
   <div id="game-container">
     <div id="cat-mouth" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
     <div id="kimchi" draggable="true" ondragstart="drag(event)"></div>
     <div id="message"></div>
+    <div id="feed-cat-text">Feed the Cat Please</div>
   </div>
 
   <script>
@@ -79,6 +93,23 @@
       "https://media.giphy.com/media/v6aOjy0Qo1fIA/giphy.gif"
     ];
     const catImg = document.getElementById('cat-gif');
+    const toggleGifBtn = document.getElementById('toggle-gif-btn');
+    let isGifVisible = false;
+
+    // Initially hide the gif
+    catImg.style.display = 'none';
+
+    toggleGifBtn.addEventListener('click', () => {
+      if (isGifVisible) {
+        catImg.style.display = 'none';
+        toggleGifBtn.textContent = 'Show Cat GIF';
+      } else {
+        catImg.style.display = 'block';
+        toggleGifBtn.textContent = 'Hide Cat GIF';
+      }
+      isGifVisible = !isGifVisible;
+    });
+
     catImg.addEventListener('click', () => {
       const newGif = gifs[Math.floor(Math.random() * gifs.length)];
       catImg.src = newGif;
